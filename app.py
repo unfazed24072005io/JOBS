@@ -10,35 +10,38 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
-from flask import Flask
-from selenium import webdriver
 
 app = Flask(__name__)
 
 # ------------------- Selenium Setup -------------------
 def init_driver():
+    # Automatically install matching ChromeDriver
+    chromedriver_autoinstaller.install()
+
     chrome_options = Options()
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
-    driver = webdriver.Chrome(
-        service=Service(ChromeDriverManager().install()), options=chrome_options
-    )
+
+    driver = webdriver.Chrome(service=Service(), options=chrome_options)
     return driver
 
 # ------------------- Scraper Functions -------------------
 def login_linkedin(driver, username, password):
     driver.get("https://www.linkedin.com/uas/login")
-    WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.ID, "session_key-login")))
+    WebDriverWait(driver, 30).until(
+        EC.presence_of_element_located((By.ID, "session_key-login"))
+    )
     driver.find_element(By.ID, "session_key-login").send_keys(username)
     driver.find_element(By.ID, "session_password-login").send_keys(password + Keys.RETURN)
     time.sleep(3)
 
 def search_jobs(driver, keyword, location):
     driver.get("https://www.linkedin.com/jobs/?trk=nav_responsive_sub_nav_jobs")
-    WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "keyword-search-box")))
-    
+    WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located((By.ID, "keyword-search-box"))
+    )
+
     # enter keyword
     driver.find_element(By.ID, "keyword-search-box").send_keys(keyword)
     # clear location
@@ -62,16 +65,12 @@ def scrape_job(driver, job_url):
     driver.get(job_url)
     time.sleep(1.5)
     data = {}
-    # job title
     try: data['job_title'] = driver.find_element(By.CSS_SELECTOR, "h1.title").text
     except: data['job_title'] = ""
-    # company
     try: data['company'] = driver.find_element(By.CSS_SELECTOR, "span.company").text
     except: data['company'] = ""
-    # location
     try: data['location'] = driver.find_element(By.CSS_SELECTOR, "h3.location").text
     except: data['location'] = ""
-    # description
     try: data['description'] = driver.find_element(By.CSS_SELECTOR, "div.summary").text
     except: data['description'] = ""
     return data
